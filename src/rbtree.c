@@ -38,7 +38,6 @@ node_t *rbtree_insert(rbtree *t, const key_t key) {
     new_node = create_node(t, NULL, &is_left, key);
     return new_node;
   }
-
   new_node = create_node(t, parent_node, &is_left, key);
   uncle = find_uncle(new_node);
   grand = find_grand(new_node);
@@ -58,7 +57,6 @@ node_t *rbtree_find(const rbtree *t, const key_t key) {
   // TODO: implement find
   
   node_t *now_node = t->root;
-
   while (now_node != NULL) {
     if (now_node->key == key)
       break;
@@ -69,7 +67,6 @@ node_t *rbtree_find(const rbtree *t, const key_t key) {
       now_node = now_node->right;
     }
   }
-
   return now_node;
 }
 
@@ -102,7 +99,8 @@ node_t *rbtree_max(const rbtree *t) {
 int rbtree_erase(rbtree *t, node_t *p) {
   int debug_counter = 0;
   node_t *deleted_node = p;
-  node_t *deleted_sibling = NULL;
+  node_t *s = NULL;
+  node_t *x = NULL;
 
   // printf("\nBefore %d is removed\n", p->key);
   // test_vlr(t->root);
@@ -111,138 +109,156 @@ int rbtree_erase(rbtree *t, node_t *p) {
   if (t == NULL || t->root == NULL || p == NULL)
     return 0;
 
+  //
+  //  이것 이후에 deleted_node 는 NULL 이 아니게 된다.
+  //
   if (p->left == NULL && p->right == NULL) {
     erase_0_has_no_children(t, deleted_node);
+    free(deleted_node);
     return 0;
   }
-
-  if (p->left) {
-    deleted_node = p->left;
-    while (deleted_node->right)
-      deleted_node = deleted_node->right;
-
-    // printf("Removing %d, Removed %d\n", p->key, deleted_node->key);
-    p->key = deleted_node->key;
-    deleted_sibling = find_sibling(deleted_node);
-    
-    
-    // Case 0 : 본인이나 자손이 빨간색인 경우 -> 포인터만 바꿔주면 됨
-    if (deleted_node->color == RBTREE_RED || (deleted_node->left && deleted_node->left->color == RBTREE_RED)) {
-      // printf("Case 0\n");
-      erase_left_0_m_is_red_or_son_is_red(deleted_node);
-      return 0;
-    }
-      
-    // Case 1-1 : 부모가 빨강, 형제와 그 자손들이 검정
-    if (deleted_sibling == NULL ||
-        deleted_node->parent->color == RBTREE_RED && 
-        deleted_sibling && deleted_sibling->color == RBTREE_BLACK && 
-        (deleted_sibling->left == NULL || deleted_sibling->left->color == RBTREE_BLACK) &&
-        (deleted_sibling->right == NULL || deleted_sibling->right->color == RBTREE_BLACK)) {
-      // printf("Case 1-1\n");
-      erase_left_1_1_m_is_black_and_sibling_and_its_son_blacks(deleted_node);
-      free(deleted_node);
-      return 0;
-    }
-      
-    // Case x_2 : 형제가 검정, 형제의 왼쪽이 빨강
-    if (deleted_sibling && 
-        deleted_sibling->left && deleted_sibling->left->color == RBTREE_RED) {
-      if (deleted_node->parent->right == deleted_node) {
-        erase_left_x_2_s_is_black_and_its_left_is_red(t, deleted_node);
-      }
-      else {
-        erase_right_x_2_s_is_black_and_its_right_is_red(t, deleted_node);
-      }
-      
-      free(deleted_node);
-      return 0;
-    }
-
-    //  Case x_3 : 형제가 검정, 형제의 오른쪽이 빨강
-    if (deleted_sibling &&
-        deleted_sibling->right && deleted_sibling->right->color == RBTREE_RED) {
-      erase_left_x_3_s_is_black_and_its_lr_is_br(t, deleted_node);
-      free(deleted_node);
-      return 0;
-    }
-
-    //  Case 2_1 : 부모가 검정, 형제가 검정
-    if (deleted_node->parent->color == RBTREE_BLACK &&
-        (deleted_sibling == NULL || deleted_sibling->color == RBTREE_BLACK)) {
-      // printf("Case 2-1\n");
-      erase_left_2_1_p_is_black_s_is_black(t, deleted_node);
-      free(deleted_node);
-      return 0;
-    }
-
-    //  Case 2_4 : 부모가 검정, 형제가 빨강
-    if (deleted_node->parent->color == RBTREE_BLACK &&
-        (deleted_sibling && deleted_sibling->color == RBTREE_RED)) {
-      // printf("Case 2-4\n");
-      erase_left_2_4_p_is_black_s_is_red(t, deleted_node);
-      free(deleted_node);
-      return 0;
-    }
-  }
-  else {
+  // printf("DEBUG %d\n", debug_counter++);
+  //
+  //  p 대신에 삭제될 노드를 구한다.
+  //  그리고 그 자리를 대체할 x 를 구한다.
+  //
+  if (p->right) {
     deleted_node = p->right;
     while (deleted_node->left)
       deleted_node = deleted_node->left;
 
     p->key = deleted_node->key;
-    deleted_sibling = find_sibling(deleted_node);
-    
-    // Case 0 : 본인이나 자손이 빨간색인 경우 -> 포인터만 바꿔주면 됨
-    if (deleted_node->color == RBTREE_RED || (deleted_node->right && deleted_node->right->color == RBTREE_RED)) {
-      erase_right_0_m_is_red_or_son_is_red(deleted_node);
-      return 0;
-    }
-      
-    // Case 1-1 : 부모가 빨강, 형제와 그 자손들이 검정
-    if (deleted_node->parent->color == RBTREE_RED && 
-        deleted_sibling && deleted_sibling->color == RBTREE_BLACK && 
-        (deleted_sibling->left == NULL || deleted_sibling->left->color == RBTREE_BLACK) &&
-        (deleted_sibling->right == NULL || deleted_sibling->right->color == RBTREE_BLACK)) {
-      erase_right_1_1_m_is_black_and_sibling_and_its_son_blacks(deleted_node);
-      free(deleted_node);
-      return 0;
-    }
-    
-    // Case x_2 : 형제가 검정, 형제의 오른쪽이 빨강
-    if (deleted_sibling && 
-        deleted_sibling->right && deleted_sibling->right->color == RBTREE_RED) {
-      if (deleted_node->parent->left == deleted_node) {
-        erase_right_x_2_s_is_black_and_its_right_is_red(t, deleted_node);
-      }
-      else {
-        erase_left_x_2_s_is_black_and_its_left_is_red(t, deleted_node);
-      }
-      
-      free(deleted_node);
-      return 0;
-    }
+    s = find_sibling(deleted_node);
+    x = deleted_node->right;
+  }
+  else {
+    deleted_node = p->left;
+    while (deleted_node->right)
+      deleted_node = deleted_node->right;
 
-    //  Case x_3 : 형제가 검정, 형제의 왼쪽이 빨강
-    if (deleted_sibling &&
-        deleted_sibling->left && deleted_sibling->left->color == RBTREE_RED) {
-      erase_right_x_3_s_is_black_and_its_lr_is_rb(t, deleted_node);
+    p->key = deleted_node->key;
+    s = find_sibling(deleted_node);
+    x = deleted_node->left;
+  }
+  //
+  //  Case 0_삭제될 노드나 대체될 노드가 RED 일때
+  //  이 이후로 deleted_node 와 x 의 color 는 무조건 BLACK 이다.
+  //
+  if (deleted_node->color == RBTREE_RED || 
+        (x && x->color == RBTREE_RED)) {
+    erase_0_m_is_red_or_ms_is_red(t, deleted_node, x);
+    free(deleted_node);
+    return 0;
+  }
+  // printf("DEBUG %d\n", debug_counter++);
+  //
+  //  부모가 빨강, 형제 및 그의 자손들이 검정일 경우이다.
+  //  부모를 검정, 형제를 빨강으로 만든다.
+  //  이 이후로 p 가 RED 면 s 는 NULL 이 아니다.
+  //
+  if (deleted_node->parent->color == RBTREE_RED && 
+      (s == NULL || 
+        (s->color == RBTREE_BLACK &&
+          (s->left == NULL || s->left->color == RBTREE_BLACK) &&
+          (s->right == NULL || s->right->color == RBTREE_BLACK)
+        )
+      )
+    ) {
+    exchange_m_x(deleted_node, x);
+    erase_1_1_p_is_red_s_and_sl_sr_is_black(t, deleted_node->parent, s);
+    free(deleted_node);
+    return 0;
+  }
+  // printf("DEBUG %d\n", debug_counter++);
+  //
+  //  형제 s 가 검정, 먼곳에 있는 조카가 빨강일 경우이다.
+  //  부모를 기준으로 x 방향으로 회전한다.
+  //
+  if (deleted_node->parent->left == deleted_node) {
+    if (s && s->color == RBTREE_BLACK && 
+        s->right && s->right->color == RBTREE_RED) {
+      exchange_m_x(deleted_node, x);
+      erase_x_2_s_black_sr_is_out_and_red(t, deleted_node->parent, s);
       free(deleted_node);
       return 0;
     }
+  }
+  else {
+    if (s && s->color == RBTREE_BLACK &&
+        s->left && s->left->color == RBTREE_RED) {
+      exchange_m_x(deleted_node, x);
+      erase_x_2_s_black_sl_is_out_and_red(t, deleted_node->parent, s);
+      free(deleted_node);
+      return 0;
+    }
+  }
+  // printf("DEBUG %d\n", debug_counter++);
+  //
+  //  형제 s 가 검정, 가까이에 있는 조카가 빨강일 경우이다.
+  //  s 를 기준응로 x 의 바깥쪽으로 회전한다.
+  //
+  if (deleted_node->parent->left == deleted_node) {
+    if (s && s->color == RBTREE_BLACK && 
+        s->left && s->left->color == RBTREE_RED) {
+      exchange_m_x(deleted_node, x);
+      erase_x_3_s_black_sl_is_in_and_red(t, deleted_node->parent, s);
+      free(deleted_node);
+      return 0;
+    }
+  } 
+  else {
+    if (s && s->color == RBTREE_BLACK &&
+        s->right && s->right->color == RBTREE_RED) {
+      exchange_m_x(deleted_node, x);
+      erase_x_3_s_black_sr_is_in_and_red(t, deleted_node->parent, s);
+      free(deleted_node);
+      return 0;
+    }
+  }
+  // printf("DEBUG %d\n", debug_counter++);
+  //
+  //  부모가 검정, 형제가 검정, 조카들도 검정일 경우다.
+  //  형제의 색을 빨강으로 바꾼다.
+  //  부모에 대해 재귀적으로 처리하라는데 어쩌란걸까...
+  //  일단 보류
+  //
+  if (deleted_node->parent->color == RBTREE_BLACK && 
+      (s == NULL || 
+        (s->color == RBTREE_BLACK &&
+          (s->left == NULL || s->left->color == RBTREE_BLACK) &&
+          (s->right == NULL || s->right->color == RBTREE_BLACK)
+        )
+      )
+    ) {
+    exchange_m_x(deleted_node, x);
+    erase_2_1_all_black(t, deleted_node->parent, s);
+    free(deleted_node);
+    return 0;
+  }
+  
+  // printf("DEBUG %d\n", debug_counter++);
 
-    //  Case 2_1 : 부모가 검정, 형제가 검정
-    if (deleted_node->parent->color == RBTREE_BLACK &&
-        (deleted_sibling == NULL || deleted_sibling->color == RBTREE_BLACK)) {
-      erase_right_2_1_p_is_black_s_is_black(t, deleted_node);
+  //
+  //  부모가 검정, 형제는 빨강인 경우이다. 이 때 조카들은 전부 검정이다.
+  //  부모의 색을 빨강, 형제의 색을 검정으로 바꾼다.
+  //  그 뒤에 부모를 기준으로 x 쪽 발향으로 회전한다.
+  //
+  if (deleted_node->parent->left == deleted_node) {
+    if (s && s->color == RBTREE_RED) {
+      exchange_m_x(deleted_node, x);
+      if (p->key == 31)
+        printf("DEBUG1\n");
+      erase_2_4_p_black_s_is_red_and_ps_right(t, deleted_node->parent, s);
       free(deleted_node);
       return 0;
     }
-    
-    //  Case 2_4 : 부모가 검정, 형제가 빨강
-    if (deleted_node->parent->color == RBTREE_BLACK &&
-        (deleted_sibling && deleted_sibling->color == RBTREE_RED)) {
-      erase_right_2_4_p_is_black_s_is_red(t, deleted_node);
+  }
+  else {
+    if (s && s->color == RBTREE_RED) {
+      exchange_m_x(deleted_node, x);
+      if (p->key == 31)
+        printf("DEBUG2\n");
+      erase_2_4_p_black_s_is_red_and_ps_left(t, deleted_node->parent, s);
       free(deleted_node);
       return 0;
     }
@@ -263,6 +279,8 @@ int rbtree_to_array(const rbtree *t, key_t *arr, const size_t n) {
 
 
 void test_lvr(node_t *node) {
+  if (node == NULL)
+    return;
   if (node->left)
     test_lvr(node->left);
   printf("LVR %d is %s\n", node->key, node->color == RBTREE_BLACK ? "BLACK" : "RED");
@@ -271,7 +289,7 @@ void test_lvr(node_t *node) {
 }
 
 void test_vlr(node_t *node) {
-  printf("VLR %d(%d) is %s\n", node->key, node->parent ? node->parent->key : 777, node->color == RBTREE_BLACK ? "BLACK" : "RED");
+  printf("VLR %d (%d) is %s\n", node->key, node->parent ? node->parent->key : 777, node->color == RBTREE_BLACK ? "BLACK" : "RED");
   if (node->left)
     test_vlr(node->left);
   if (node->right)
@@ -351,7 +369,8 @@ static node_t *create_node(rbtree *t, node_t *parent, const int *is_left, const 
   new_node->color = RBTREE_RED;
   new_node->key = key;
   new_node->parent = parent;
-  new_node->left = new_node->right = NULL;
+  new_node->left = NULL;
+  new_node->right = NULL;
 
   if (parent) {
     if (*is_left)
@@ -414,13 +433,17 @@ static node_t *find_parent_node(const rbtree *t, const key_t key, int *is_left) 
 static node_t *insert_1_father_red_no_uncle_or_uncle_black(rbtree *t, node_t *child) {
   node_t *parent = child->parent;
   node_t *grand = find_grand(child);
+  // printf("Insert 1 : %d\n", child->key);
 
   if (grand->left == parent && parent->left == child) {
     // printf("Case 1_%d\n", child->key);
     grand->left = parent->right;
+    if (parent->right)
+      parent->right->parent = grand;
+
+    parent->right = grand;
     parent->parent = grand->parent;
     grand->parent = parent;
-    parent->right = grand;
 
     parent->color = RBTREE_BLACK;
     grand->color = RBTREE_RED;
@@ -490,6 +513,8 @@ static node_t *insert_1_father_red_no_uncle_or_uncle_black(rbtree *t, node_t *ch
     // printf("Case 4_%d\n", child->key);
     parent->parent = grand->parent;
     grand->right = parent->left;
+    if (parent->left)
+      parent->left->parent = grand;
     parent->left = grand;
     grand->parent = parent;
 
@@ -515,6 +540,8 @@ static node_t *insert_2_father_red_uncle_red(rbtree *t, node_t *child) {
   node_t *uncle = find_uncle(child);
   node_t *parent = child->parent;
 
+  // printf("Insert 2 : %d\n", child->key);
+
 
   uncle->color = RBTREE_BLACK;
   parent->color = RBTREE_BLACK;
@@ -528,12 +555,27 @@ static node_t *insert_2_father_red_uncle_red(rbtree *t, node_t *child) {
 
     if (grand_uncle == NULL || grand_uncle->color == RBTREE_BLACK)
       return insert_1_father_red_no_uncle_or_uncle_black(t, grand);
-    else if (grand_uncle && grand_uncle->color == RBTREE_RED)
+    else
       return insert_2_father_red_uncle_red(t, grand);
   }
 
   return child;
 }
+
+//
+//  m->parent 가 NULL 이 아닌 상황에서만 부른다.
+//
+static void exchange_m_x(node_t *m, node_t *x) {
+  node_t *p = m->parent;
+
+  if (p->left == m)
+    p->left = x;
+  else
+    p->right = x;
+  if (x)
+    x->parent = p;
+}
+
 
 static int erase_0_has_no_children(rbtree *t, node_t *now_node) {
   if (t->root == now_node)
@@ -544,302 +586,300 @@ static int erase_0_has_no_children(rbtree *t, node_t *now_node) {
     else
       now_node->parent->right = NULL;
   }
-  free(now_node);
+
   return 0;
 }
 
-static int erase_right_0_m_is_red_or_son_is_red(node_t *now_node) {
-  if (now_node->parent->left == now_node)
-    now_node->parent->left = now_node->right;
-  else
-    now_node->parent->right = now_node->right;
+static int erase_0_m_is_red_or_ms_is_red(rbtree *t, node_t *m, node_t *x) {
 
-  if (now_node->right) {
-    now_node->right->color = RBTREE_BLACK;
-    now_node->right->parent = now_node->parent;
+  if (m->parent->left == m) {
+    m->parent->left = x;
   }
-    
-  free(now_node);
-  return 0;
-}
-
-static int erase_left_0_m_is_red_or_son_is_red(node_t *now_node) {
-  if (now_node->parent->right == now_node)
-    now_node->parent->right = now_node->left;
-  else
-    now_node->parent->left = now_node->left;
-
-  if (now_node->left) {
-    now_node->left->color = RBTREE_BLACK;
-    now_node->left->parent = now_node->parent;
+  else {
+    m->parent->right = x;
   }
-  free(now_node);
+
+  if (x) {
+    x->parent = m->parent;
+    x->color = RBTREE_BLACK;
+  }
+
   return 0;
 }
 
-static int erase_right_1_1_m_is_black_and_sibling_and_its_son_blacks(node_t *now_node) {
-  node_t *sibling = find_sibling(now_node);
+//
+//    x 가 NULL 일수도 있어서 s 와 p를 받았다.
+//
+static int erase_1_1_p_is_red_s_and_sl_sr_is_black(rbtree *t, node_t *p, node_t *s) {
+  p->color = RBTREE_BLACK;
+  if (s)
+    s->color = RBTREE_RED;
 
-  now_node->parent->color = RBTREE_BLACK;
-
-  if(sibling)
-    sibling->color = RBTREE_RED;
-  chain_right(now_node);
   return 0;
 }
 
-static int erase_left_1_1_m_is_black_and_sibling_and_its_son_blacks(node_t *now_node) {
-  node_t *sibling = find_sibling(now_node);
-
-  now_node->parent->color = RBTREE_BLACK;
-  
-  if(sibling)
-    sibling->color = RBTREE_RED;
-  
-  chain_left(now_node);
-  return 0;
-}
-
-static int erase_right_x_2_s_is_black_and_its_right_is_red(rbtree *t, node_t *now_node) {
-  node_t *parent = now_node->parent;
-  node_t *sibling = find_sibling(now_node);
-  node_t *sibling_right = sibling ? sibling->right : NULL;
-
-  //  Rotate Left
-  parent->right = sibling->left;
-  sibling->parent = parent->parent;
-  parent->parent = sibling;
-  sibling->left = parent;
-
-  //  Change sibling's right son's color black
-  sibling->color = parent->color;
-  parent->color = RBTREE_BLACK;
-  if (sibling_right)
-    sibling_right->color = RBTREE_RED;
-
-  //  Root Processing
-  if (t->root == parent)
-    t->root = sibling;
-  if (sibling->parent) {
-    if (sibling->parent->left == parent)
-      sibling->parent->left = sibling;
+static int erase_x_2_s_black_sr_is_out_and_red(rbtree *t, node_t *p, node_t *s) {
+  if (t->root == p) {
+    t->root = s;
+  }
+  if (p->parent) {
+    if (p->parent->left == p)
+      p->parent->left = s;
     else
-      sibling->parent->right = sibling;
+      p->parent->right = s;
   }
 
-  chain_right(now_node);
-  return 0;
+  s->parent = p->parent;
+  p->parent = s;
+  p->right = s->left;
+  if (s->left)
+    s->left->parent = p;
+  s->left = p;
+
+  s->color = p->color;
+  p->color = RBTREE_BLACK;
+  if (s->right)
+    s->right->color = RBTREE_RED;
 }
 
-static int erase_left_x_2_s_is_black_and_its_left_is_red(rbtree *t, node_t *now_node) {
-  node_t *parent = now_node->parent;
-  node_t *sibling = find_sibling(now_node);
-  node_t *sibling_left = sibling ? sibling->left : NULL;
-
-  //  Rotate Right
-  parent->left = sibling->right;
-  sibling->parent = parent->parent;
-  parent->parent = sibling;
-  sibling->right = parent;
-
-  //  Change sibling's left son's color black
-  sibling->color = parent->color;
-  parent->color = RBTREE_BLACK;
-  if (sibling_left)
-    sibling_left->color = RBTREE_RED;
-
-  //  Root Processing
-  if (t->root == parent)
-    t->root = sibling;
-  if (sibling->parent) {
-    if (sibling->parent->left == parent)
-      sibling->parent->left = sibling;
+static int erase_x_2_s_black_sl_is_out_and_red(rbtree *t, node_t *p, node_t *s) {
+  if (t->root == p)
+    t->root = s;
+  if (p->parent) {
+    if (p->parent->left == p)
+      p->parent->left = s;
     else
-      sibling->parent->right = sibling;
+      p->parent->right = s;
   }
-  
-  
-  chain_left(now_node);
-  return 0;
+
+  s->parent = p->parent;
+  p->parent = s;
+  p->left = s->right;
+  if (s->right)
+    s->right->parent = p;
+  s->right = p;
+
+  s->color = p->color;
+  p->color = RBTREE_BLACK;
+  if (s->left)
+    s->left->color = RBTREE_RED;
 }
 
-static int erase_right_x_3_s_is_black_and_its_lr_is_rb(rbtree *t, node_t *now_node) {
-  int is_chain_left = 0;
+static int erase_x_3_s_black_sl_is_in_and_red(rbtree *t, node_t *p, node_t *s) {
+  node_t *sl = s->left;
 
-  node_t *sibling = find_sibling(now_node);
-  node_t *sl = sibling->left;
-  node_t *slr = sibling->left->right;
-
-  if (now_node->parent->left == now_node)
-    is_chain_left = 1;
-
-  now_node->parent->right = sl;
-  sl->parent = now_node->parent;
+  p->right = sl;
+  sl->parent = p;
   sl->color = RBTREE_BLACK;
-  sl->right = sibling;
-  sibling->parent = sl;
-  sibling->color = RBTREE_RED;
-  sibling->left = slr;
-  if (slr)
-    slr->parent = sibling;
-    
-  if (is_chain_left)
-    chain_left(now_node);
-  else
-    chain_right(now_node);
-  erase_right_x_2_s_is_black_and_its_right_is_red(t, now_node);
+  s->left = sl->right;
+  if (sl->right)
+    sl->right->parent = s;
+  sl->right = s;
+  s->parent = sl;
+  s->color = RBTREE_RED;
+
+  erase_x_2_s_black_sr_is_out_and_red(t, p, sl);  
 }
 
-static int erase_left_x_3_s_is_black_and_its_lr_is_br(rbtree *t, node_t *now_node) {
-  int is_chain_left = 0;
+static int erase_x_3_s_black_sr_is_in_and_red(rbtree *t, node_t *p, node_t *s) {
+  node_t *sr = s->right;
 
-  node_t *sibling = find_sibling(now_node);
-  node_t *sr = sibling->right;
-  node_t *srl = sibling->right->left;
-
-  if (now_node->parent->left == now_node)
-    is_chain_left = 1;
-
-  now_node->parent->left = sr;
-  sr->parent = now_node->parent;
+  p->left = sr;
+  sr->parent = p;
   sr->color = RBTREE_BLACK;
-  sr->left = sibling;
-  sibling->parent = sr;
-  sibling->color = RBTREE_RED;
-  sibling->right = srl;
-  if (srl)
-    srl->parent = sibling;
-  if (now_node->parent->left == now_node)
+  s->right = sr->left;
+  if (sr->left)
+    sr->left->parent = s;
+  sr->left = s;
+  s->parent = sr;
+  s->color = RBTREE_RED;
 
-  if (is_chain_left)
-    chain_left(now_node);
-  else
-    chain_right(now_node);
-  erase_left_x_2_s_is_black_and_its_left_is_red(t, now_node);
+  erase_x_2_s_black_sl_is_out_and_red(t, p, sr);  
 }
 
-static int erase_right_2_1_p_is_black_s_is_black(rbtree *t, node_t *now_node) {
-  node_t *sibling = find_sibling(now_node);
-  node_t *p_sibling = NULL;
-  node_t *parent = NULL;
-
-  if (sibling == NULL)
+static int erase_2_1_all_black(rbtree *t, node_t *p, node_t *s) {
+  node_t *ps = NULL;
+  if (s)
+    s->color = RBTREE_RED;
+  
+  if (t->root == p)
     return 0;
 
-  sibling->color = RBTREE_RED;
-  parent = now_node->parent;
 
-  if (parent && parent->parent) {
-    p_sibling = find_sibling(parent);
-    
-  }
-  chain_right(now_node);
-}
+  ps = find_sibling(p);
 
-static int erase_left_2_1_p_is_black_s_is_black(rbtree *t, node_t *now_node) {
-  node_t *sibling = find_sibling(now_node);
-  node_t *p_sibling = NULL;
-  node_t *parent = NULL;
-
-  if (sibling == NULL)
+  if (p->parent->color == RBTREE_RED && 
+      (ps == NULL || 
+        (ps->color == RBTREE_BLACK &&
+          (ps->left == NULL || ps->left->color == RBTREE_BLACK) &&
+          (ps->right == NULL || ps->right->color == RBTREE_BLACK)
+        )
+      )
+    ) {
+    erase_1_1_p_is_red_s_and_sl_sr_is_black(t, p->parent, ps);
     return 0;
-
-  sibling->color = RBTREE_RED;
-  parent = now_node->parent;
-
-  if (parent && parent->parent) {
-    p_sibling = find_sibling(parent);
-    
   }
-  chain_left(now_node);
-}
 
-static int erase_right_2_4_p_is_black_s_is_red(rbtree *t, node_t *now_node) {
-  node_t *parent = now_node->parent;
-  node_t *sibling = find_sibling(now_node);
-
-  parent->right = sibling->left;
-  if (parent->right)
-    parent->right->parent = parent;
-  sibling->left = parent;
-  sibling->parent = parent->parent;
-  parent->parent = sibling;
-
-  parent->color = RBTREE_RED;
-  sibling->color = RBTREE_BLACK;
-
-  if (t->root == parent) {
-    t->root = sibling;
+  //
+  //  형제 s 가 검정, 먼곳에 있는 조카가 빨강일 경우이다.
+  //  부모를 기준으로 x 방향으로 회전한다.
+  //
+  if (p->parent->left == p) {
+    if (ps && ps->color == RBTREE_BLACK && 
+        ps->right && ps->right->color == RBTREE_RED) {
+      erase_x_2_s_black_sr_is_out_and_red(t, p->parent, ps);
+      return 0;
+    }
   }
   else {
-    if (sibling->parent->left == parent)
-      sibling->parent->left = sibling;
-    else
-      sibling->parent->right = sibling;
+    if (ps && ps->color == RBTREE_BLACK &&
+        ps->left && ps->left->color == RBTREE_RED) {
+      erase_x_2_s_black_sl_is_out_and_red(t, p->parent, ps);
+      return 0;
+    }
   }
-  chain_right(now_node);
-  sibling = find_sibling(now_node);
-  if (sibling == NULL || 
-        (sibling->color == RBTREE_BLACK && 
-        (sibling->left == NULL || sibling->left->color == RBTREE_BLACK) &&
-        (sibling->right == NULL || sibling->right->color == RBTREE_BLACK))) {
-    erase_right_1_1_m_is_black_and_sibling_and_its_son_blacks(now_node);
+
+  //
+  //  형제 s 가 검정, 가까이에 있는 조카가 빨강일 경우이다.
+  //  s 를 기준응로 x 의 바깥쪽으로 회전한다.
+  //
+  if (p->parent->left == p) {
+    if (ps && ps->color == RBTREE_BLACK && 
+        ps->left && ps->left->color == RBTREE_RED) {
+      erase_x_3_s_black_sl_is_in_and_red(t, p->parent, ps);
+      return 0;
+    }
+  } 
+  else {
+    if (ps && ps->color == RBTREE_BLACK &&
+        ps->right && ps->right->color == RBTREE_RED) {
+      erase_x_3_s_black_sr_is_in_and_red(t, p->parent, ps);
+      return 0;
+    }
+  }
+
+  //
+  //  부모가 검정, 형제가 검정, 조카들도 검정일 경우다.
+  //  형제의 색을 빨강으로 바꾼다.
+  //  부모에 대해 재귀적으로 처리하라는데 어쩌란걸까...
+  //  일단 보류
+  //
+  if (p->parent->color == RBTREE_BLACK && 
+      (ps == NULL || 
+        (ps->color == RBTREE_BLACK &&
+          (ps->left == NULL || ps->left->color == RBTREE_BLACK) &&
+          (ps->right == NULL || ps->right->color == RBTREE_BLACK)
+        )
+      )
+    ) {
+    erase_2_1_all_black(t, p->parent, ps);
     return 0;
   }
-  if (sibling->right && sibling->right->color == RBTREE_RED) {
-    erase_right_x_2_s_is_black_and_its_right_is_red(t, now_node);
-    return 0;
-  }
-  if (sibling->left && sibling->left->color == RBTREE_RED) {
-    erase_right_x_3_s_is_black_and_its_lr_is_rb(t, now_node);
-    return 0;
-  }
-  return 0;
-}
-
-static int erase_left_2_4_p_is_black_s_is_red(rbtree *t, node_t *now_node) {
-  node_t *parent = now_node->parent;
-  node_t *sibling = find_sibling(now_node);
-
-  parent->left = sibling->right;
-  if (parent->left)
-    parent->left->parent = parent;
-  sibling->right = parent;
-  sibling->parent = parent->parent;
-  parent->parent = sibling;
-
-  parent->color = RBTREE_RED;
-  sibling->color = RBTREE_BLACK;
-
-  if (t->root == parent) {
-    t->root = sibling;
+  if (p->parent->left == p) {
+    if (ps && ps->color == RBTREE_RED) {
+      erase_2_4_p_black_s_is_red_and_ps_right(t, p->parent, ps);
+      return 0;
+    }
   }
   else {
-    if (sibling->parent->left == parent)
-      sibling->parent->left = sibling;
+    if (ps && ps->color == RBTREE_RED) {
+      erase_2_4_p_black_s_is_red_and_ps_left(t, p->parent, ps);
+      return 0;
+    }
+  }
+}
+
+static int erase_2_4_p_black_s_is_red_and_ps_right(rbtree *t, node_t *p, node_t *s) {
+  node_t *sl = s->left;
+
+  if (t->root == p) {
+    t->root = s;
+  }
+  if (p->parent) {
+    if (p->parent->left == p)
+      p->parent->left = s;
     else
-      sibling->parent->right = sibling;
+      p->parent->right = s;
   }
 
-  chain_left(now_node);
-  sibling = find_sibling(now_node);
-  if (sibling == NULL || 
-        (sibling->color == RBTREE_BLACK && 
-        (sibling->left == NULL || sibling->left->color == RBTREE_BLACK) &&
-        (sibling->right == NULL || sibling->right->color == RBTREE_BLACK))) {
-    erase_left_1_1_m_is_black_and_sibling_and_its_son_blacks(now_node);
+  s->parent = p->parent;
+  p->parent = s;
+  p->right = sl;
+  if (sl)
+    sl->parent = p;
+  s->left = p;
+
+  s->color = RBTREE_BLACK;
+  p->color = RBTREE_RED;
+
+  if (sl == NULL || 
+      (sl->color == RBTREE_BLACK &&
+        (sl->left == NULL || sl->left->color == RBTREE_BLACK) &&
+        (sl->right == NULL || sl->right->color == RBTREE_BLACK)
+      )
+    ) {
+    erase_1_1_p_is_red_s_and_sl_sr_is_black(t, p, sl);
     return 0;
   }
-  if (sibling->right && sibling->right->color == RBTREE_RED) {
-    erase_left_x_2_s_is_black_and_its_left_is_red(t, now_node);
+
+  if (sl && sl->color == RBTREE_BLACK && 
+      sl->right && sl->right->color == RBTREE_RED) {
+    erase_x_2_s_black_sr_is_out_and_red(t, p, sl);
     return 0;
   }
-  if (sibling->left && sibling->left->color == RBTREE_RED) {
-    erase_left_x_3_s_is_black_and_its_lr_is_br(t, now_node);
+
+  if (sl && sl->color == RBTREE_BLACK && 
+      sl->left && sl->left->color == RBTREE_RED) {
+    erase_x_3_s_black_sl_is_in_and_red(t, p, sl);
     return 0;
   }
-  return 0;
 }
+
+static int erase_2_4_p_black_s_is_red_and_ps_left(rbtree *t, node_t *p, node_t *s) {
+  node_t *sr = s->right;
+  if (t->root == p) {
+    t->root = s;
+  }
+  if (p->parent) {
+    if (p->parent->left == p)
+      p->parent->left = s;
+    else
+      p->parent->right = s;
+  }
+
+  s->parent = p->parent;
+  p->parent = s;
+  p->left = sr;
+  if (sr)
+    sr->parent = p;
+  s->right = p;
+
+  s->color = RBTREE_BLACK;
+  p->color = RBTREE_RED;
+
+  if (sr == NULL || 
+      (sr->color == RBTREE_BLACK &&
+        (sr->left == NULL || sr->left->color == RBTREE_BLACK) &&
+        (sr->right == NULL || sr->right->color == RBTREE_BLACK)
+      )
+    ) {
+    erase_1_1_p_is_red_s_and_sl_sr_is_black(t, p, sr);
+    return 0;
+  }
+
+  if (sr && sr->color == RBTREE_BLACK && 
+      sr->left && sr->left->color == RBTREE_RED) {
+    erase_x_2_s_black_sl_is_out_and_red(t, p, sr);
+    return 0;
+  }
+
+  if (sr && sr->color == RBTREE_BLACK && 
+      sr->right && sr->right->color == RBTREE_RED) {
+    erase_x_3_s_black_sr_is_in_and_red(t, p, sr);
+    return 0;
+  }
+}
+
 
 
 //
@@ -890,26 +930,6 @@ int check_erase_condition(rbtree *t, node_t *now_node, color_t p_col, color_t s_
   // printf("Debug 6\n");
   return 0;
   
-}
-
-static int chain_right(node_t *now_node) {
-  if (now_node->parent->left == now_node)
-    now_node->parent->left = now_node->right;
-  else
-    now_node->parent->right = now_node->right;
-  if (now_node->right)
-    now_node->right->parent = now_node->parent;
-
-  return 0;
-}
-
-static int chain_left(node_t *now_node) {
-  if (now_node->parent->left == now_node)
-    now_node->parent->left = now_node->left;
-  else
-    now_node->parent->right = now_node->left;
-  if (now_node->left)
-    now_node->left->parent = now_node->parent;
 }
 
 

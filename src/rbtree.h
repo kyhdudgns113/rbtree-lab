@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <stdio.h>
+#include <assert.h>
 
 typedef enum { RBTREE_RED, RBTREE_BLACK } color_t;
 
@@ -45,23 +46,21 @@ static node_t *find_parent_node(const rbtree *, const key_t, int *);
 static node_t *insert_1_father_red_no_uncle_or_uncle_black(rbtree *, node_t *);
 static node_t *insert_2_father_red_uncle_red(rbtree *, node_t *);
 
-static int erase_0_has_no_children(rbtree *, node_t *);
-static int erase_right_0_m_is_red_or_son_is_red(node_t *);
-static int erase_left_0_m_is_red_or_son_is_red(node_t *);
-static int erase_right_1_1_m_is_black_and_sibling_and_its_son_blacks(node_t *);
-static int erase_left_1_1_m_is_black_and_sibling_and_its_son_blacks(node_t *);
-static int erase_right_x_2_s_is_black_and_its_right_is_red(rbtree *, node_t *);
-static int erase_left_x_2_s_is_black_and_its_left_is_red(rbtree *, node_t *);
-static int erase_right_x_3_s_is_black_and_its_lr_is_rb(rbtree *, node_t *);
-static int erase_left_x_3_s_is_black_and_its_lr_is_br(rbtree *, node_t *);
-static int erase_right_2_1_p_is_black_s_is_black(rbtree *, node_t *);
-static int erase_left_2_1_p_is_black_s_is_black(rbtree *, node_t *);
-static int erase_right_2_4_p_is_black_s_is_red(rbtree *, node_t *);
-static int erase_left_2_4_p_is_black_s_is_red(rbtree *, node_t *);
+static void exchange_m_x(node_t *, node_t *);
 
-int check_erase_condition(rbtree *, node_t *, color_t , color_t , color_t, color_t);
-static int chain_right(node_t *);
-static int chain_left(node_t *);
+static int erase_0_has_no_children(rbtree *, node_t *);
+static int erase_0_m_is_red_or_ms_is_red(rbtree *, node_t *, node_t *);
+static int erase_1_1_p_is_red_s_and_sl_sr_is_black(rbtree *, node_t *, node_t *);
+static int erase_x_2_s_black_sr_is_out_and_red(rbtree *, node_t *, node_t *);
+static int erase_x_2_s_black_sl_is_out_and_red(rbtree *, node_t *, node_t *);
+static int erase_x_3_s_black_sl_is_in_and_red(rbtree *, node_t *, node_t *);
+static int erase_x_3_s_black_sr_is_in_and_red(rbtree *, node_t *, node_t *);
+static int erase_2_1_all_black(rbtree *, node_t *, node_t *);
+static int erase_2_4_p_black_s_is_red_and_ps_right(rbtree *, node_t *, node_t *);
+static int erase_2_4_p_black_s_is_red_and_ps_left(rbtree *, node_t *, node_t *);
+
+
+int check_erase_condition(rbtree *, node_t *, color_t, color_t, color_t, color_t);
 
 static void delete_node_lrv(node_t *);
 

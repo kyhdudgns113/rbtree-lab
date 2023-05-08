@@ -10,10 +10,10 @@ int test_array[] = {
     , 67
     , 23
     , 156
-    , 24
+    , 26
     , 2
     , 12
-    , 24, 36, 990, 25
+    , 28, 36, 990, 30
 };
 
 enum {R, B};
@@ -30,6 +30,8 @@ int main(int argc, char *argv[]) {
     for (i = 0; i < sizeof(test_array)/sizeof(int); i++) {
         rbtree_insert(rbt, test_array[i]);
     }
+    rbtree_insert(rbt, 25);
+    test_vlr(rbt->root);
 
     // for (i = 0; i < sizeof(test_array)/sizeof(int); i++) {
     //     test_node = rbtree_find(rbt, test_array[i]);
@@ -54,16 +56,21 @@ int main(int argc, char *argv[]) {
 
     // printf("\n");
 
-    for (i = 0; i < sizeof(test_array)/sizeof(int); i++) {
-        printf("%d is finding...\n", test_array[i]);
-        erased_node = rbtree_find(rbt, test_array[i]);
-        if (erased_node == NULL)
-            break;
-        rbtree_erase(rbt, erased_node);
-        test_vlr(rbt->root);
-        test_lvr(rbt->root);
-        printf("\n");
-    }
+    // for (i = 0; i < sizeof(test_array)/sizeof(int); i++) {
+    //     printf("%d is finding...\n", test_array[i]);
+    //     test_vlr(rbt->root);
+    //     test_lvr(rbt->root);
+    //     erased_node = rbtree_find(rbt, test_array[i]);
+    //     if (erased_node == NULL)
+    //         break;
+    //     rbtree_erase(rbt, erased_node);
+    //     printf("\n");
+    // }
+    // erased_node = rbtree_find(rbt, 24);
+    // rbtree_erase(rbt, erased_node);
+    // test_vlr(rbt->root);
+    // printf("\n");
+    // test_lvr(rbt->root);
 
     delete_rbtree(rbt);
 }
