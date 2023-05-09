@@ -3,17 +3,18 @@
 #include <stdio.h>
 
 int test_array[] = {
-    10
+    11
     , 5
-   , 8
-    , 34
-    , 67
-    , 23
-    , 156
-    , 26
+   , 9
+    , 340
+    , 670
+    , 230
+    , 1560
+    , 260
     , 2
-    , 12
-    , 28, 36, 990, 30
+    , 13
+    , 280, 360, 9900, 300
+    ,15, 7, 1, 4, 6, 8, 10, 12, 14, 16
 };
 
 enum {R, B};
@@ -30,9 +31,14 @@ int main(int argc, char *argv[]) {
     for (i = 0; i < sizeof(test_array)/sizeof(int); i++) {
         rbtree_insert(rbt, test_array[i]);
     }
-    rbtree_insert(rbt, 25);
+    for (i = 1; i < 33; i++) {
+        test_node = rbtree_find(rbt, i);
+        if (test_node)
+            continue;
+        rbtree_insert(rbt, i);
+    }
     test_vlr(rbt->root);
-
+    printf("\n");
     // for (i = 0; i < sizeof(test_array)/sizeof(int); i++) {
     //     test_node = rbtree_find(rbt, test_array[i]);
     //     printf("%d's B B B B is %s\n", test_node->key, check_erase_condition(rbt, test_node, B, B, B, B) ? "T" : " ");
@@ -56,21 +62,18 @@ int main(int argc, char *argv[]) {
 
     // printf("\n");
 
-    // for (i = 0; i < sizeof(test_array)/sizeof(int); i++) {
-    //     printf("%d is finding...\n", test_array[i]);
-    //     test_vlr(rbt->root);
-    //     test_lvr(rbt->root);
-    //     erased_node = rbtree_find(rbt, test_array[i]);
-    //     if (erased_node == NULL)
-    //         break;
-    //     rbtree_erase(rbt, erased_node);
-    //     printf("\n");
-    // }
-    // erased_node = rbtree_find(rbt, 24);
-    // rbtree_erase(rbt, erased_node);
-    // test_vlr(rbt->root);
-    // printf("\n");
-    // test_lvr(rbt->root);
+    for (i = 0; i < sizeof(test_array)/sizeof(int); i++) {
+        printf("%d is finding...\n", test_array[i]);
+        test_vlr(rbt->root);
+        // test_lvr(rbt->root);
+        erased_node = rbtree_find(rbt, test_array[i]);
+        if (erased_node == NULL) {
+            printf("NULL POINTER ERROR\n");
+            break;
+        }
+        rbtree_erase(rbt, erased_node);
+        printf("\n");
+    }
 
     delete_rbtree(rbt);
 }

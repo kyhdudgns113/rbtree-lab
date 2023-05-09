@@ -40,7 +40,7 @@ static void to_array_lvr(key_t *, node_t *, const size_t, int *);
 static node_t *find_uncle(node_t *);
 static node_t *find_grand(node_t *);
 static node_t *find_sibling(node_t *);
-static node_t *create_node(rbtree *, node_t *, const int *, const key_t);
+static node_t *create_node(rbtree *, node_t *, const int , const key_t);
 static node_t *find_parent_node(const rbtree *, const key_t, int *);
 
 static node_t *insert_1_father_red_no_uncle_or_uncle_black(rbtree *, node_t *);

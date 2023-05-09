@@ -22,23 +22,21 @@ node_t *rbtree_insert(rbtree *t, const key_t key) {
   node_t *new_node = NULL;
   node_t *uncle = NULL;
   node_t *grand = NULL;
-  node_t *now_node = NULL;
 
-  int is_left = 1;
+  int is_left = 0;
 
   if (t == NULL)
     return NULL;
-  // parent_node = rbtree_find(t, key);
-  // if (parent_node)
-  //   return parent_node;
 
   parent_node = find_parent_node(t, key, &is_left);
+
   // new_node 가 root 인 경우이다.
   if (parent_node == NULL) {
-    new_node = create_node(t, NULL, &is_left, key);
+    new_node = create_node(t, NULL, is_left, key);
     return new_node;
   }
-  new_node = create_node(t, parent_node, &is_left, key);
+
+  new_node = create_node(t, parent_node, is_left, key);
   uncle = find_uncle(new_node);
   grand = find_grand(new_node);
   if (parent_node->color == RBTREE_RED) {
@@ -97,14 +95,15 @@ node_t *rbtree_max(const rbtree *t) {
 }
 
 int rbtree_erase(rbtree *t, node_t *p) {
-  int debug_counter = 0;
+
+  //
+  //  deleted_node : 삭제될 노드
+  //  s : 삭제될 노드의 형제 노드
+  //  x : 삭제될 노드 자리에 들어올 노드
+  //
   node_t *deleted_node = p;
   node_t *s = NULL;
   node_t *x = NULL;
-
-  // printf("\nBefore %d is removed\n", p->key);
-  // test_vlr(t->root);
-  // printf("%d is removing...\n", p->key);
 
   if (t == NULL || t->root == NULL || p == NULL)
     return 0;
@@ -117,9 +116,8 @@ int rbtree_erase(rbtree *t, node_t *p) {
     free(deleted_node);
     return 0;
   }
-  // printf("DEBUG %d\n", debug_counter++);
   //
-  //  p 대신에 삭제될 노드를 구한다.
+  //  p 대신에 삭제될 노드(deleted_node)를 구한다.
   //  그리고 그 자리를 대체할 x 를 구한다.
   //
   if (p->right) {
@@ -146,11 +144,11 @@ int rbtree_erase(rbtree *t, node_t *p) {
   //
   if (deleted_node->color == RBTREE_RED || 
         (x && x->color == RBTREE_RED)) {
+    // printf("case_0\n");
     erase_0_m_is_red_or_ms_is_red(t, deleted_node, x);
     free(deleted_node);
     return 0;
   }
-  // printf("DEBUG %d\n", debug_counter++);
   //
   //  부모가 빨강, 형제 및 그의 자손들이 검정일 경우이다.
   //  부모를 검정, 형제를 빨강으로 만든다.
@@ -164,12 +162,12 @@ int rbtree_erase(rbtree *t, node_t *p) {
         )
       )
     ) {
+    //  printf("case_1_1\n");
     exchange_m_x(deleted_node, x);
     erase_1_1_p_is_red_s_and_sl_sr_is_black(t, deleted_node->parent, s);
     free(deleted_node);
     return 0;
   }
-  // printf("DEBUG %d\n", debug_counter++);
   //
   //  형제 s 가 검정, 먼곳에 있는 조카가 빨강일 경우이다.
   //  부모를 기준으로 x 방향으로 회전한다.
@@ -177,22 +175,24 @@ int rbtree_erase(rbtree *t, node_t *p) {
   if (deleted_node->parent->left == deleted_node) {
     if (s && s->color == RBTREE_BLACK && 
         s->right && s->right->color == RBTREE_RED) {
+      // printf("case_x_2_l del = %d\n", deleted_node->key);
       exchange_m_x(deleted_node, x);
       erase_x_2_s_black_sr_is_out_and_red(t, deleted_node->parent, s);
       free(deleted_node);
       return 0;
     }
   }
+  
   else {
     if (s && s->color == RBTREE_BLACK &&
         s->left && s->left->color == RBTREE_RED) {
+      //  printf("case_x_2_r\n");
       exchange_m_x(deleted_node, x);
       erase_x_2_s_black_sl_is_out_and_red(t, deleted_node->parent, s);
       free(deleted_node);
       return 0;
     }
   }
-  // printf("DEBUG %d\n", debug_counter++);
   //
   //  형제 s 가 검정, 가까이에 있는 조카가 빨강일 경우이다.
   //  s 를 기준응로 x 의 바깥쪽으로 회전한다.
@@ -200,6 +200,7 @@ int rbtree_erase(rbtree *t, node_t *p) {
   if (deleted_node->parent->left == deleted_node) {
     if (s && s->color == RBTREE_BLACK && 
         s->left && s->left->color == RBTREE_RED) {
+      //  printf("case_x_3_l\n");
       exchange_m_x(deleted_node, x);
       erase_x_3_s_black_sl_is_in_and_red(t, deleted_node->parent, s);
       free(deleted_node);
@@ -209,13 +210,13 @@ int rbtree_erase(rbtree *t, node_t *p) {
   else {
     if (s && s->color == RBTREE_BLACK &&
         s->right && s->right->color == RBTREE_RED) {
+      //  printf("case_x_3_r\n");
       exchange_m_x(deleted_node, x);
       erase_x_3_s_black_sr_is_in_and_red(t, deleted_node->parent, s);
       free(deleted_node);
       return 0;
     }
   }
-  // printf("DEBUG %d\n", debug_counter++);
   //
   //  부모가 검정, 형제가 검정, 조카들도 검정일 경우다.
   //  형제의 색을 빨강으로 바꾼다.
@@ -235,9 +236,6 @@ int rbtree_erase(rbtree *t, node_t *p) {
     free(deleted_node);
     return 0;
   }
-  
-  // printf("DEBUG %d\n", debug_counter++);
-
   //
   //  부모가 검정, 형제는 빨강인 경우이다. 이 때 조카들은 전부 검정이다.
   //  부모의 색을 빨강, 형제의 색을 검정으로 바꾼다.
@@ -245,9 +243,8 @@ int rbtree_erase(rbtree *t, node_t *p) {
   //
   if (deleted_node->parent->left == deleted_node) {
     if (s && s->color == RBTREE_RED) {
+      //  printf("case_2_4_l\n");
       exchange_m_x(deleted_node, x);
-      if (p->key == 31)
-        printf("DEBUG1\n");
       erase_2_4_p_black_s_is_red_and_ps_right(t, deleted_node->parent, s);
       free(deleted_node);
       return 0;
@@ -255,9 +252,8 @@ int rbtree_erase(rbtree *t, node_t *p) {
   }
   else {
     if (s && s->color == RBTREE_RED) {
+      // printf("case_2_4_r\n");
       exchange_m_x(deleted_node, x);
-      if (p->key == 31)
-        printf("DEBUG2\n");
       erase_2_4_p_black_s_is_red_and_ps_left(t, deleted_node->parent, s);
       free(deleted_node);
       return 0;
@@ -268,9 +264,8 @@ int rbtree_erase(rbtree *t, node_t *p) {
 int rbtree_to_array(const rbtree *t, key_t *arr, const size_t n) {
   int now_size = 0;
 
-  if (t == NULL || t->root == NULL) {
+  if (t == NULL || t->root == NULL)
     return 0;
-  }
 
   to_array_lvr(arr, t->root, n, &now_size);
 
@@ -310,9 +305,8 @@ static void to_array_lvr(key_t *output_array, node_t *now_node, const size_t max
   if (max_size <= *now_size)
     return;
 
-  if (now_node->left && (max_size > *now_size)) {
+  if (now_node->left && (max_size > *now_size))
     to_array_lvr(output_array, now_node->left, max_size, now_size);
-  }
 
   if (max_size <= *now_size)
     return;
@@ -364,7 +358,7 @@ static node_t *find_sibling(node_t *now_node) {
 //  출력 :
 //    새로 만들어진 노드
 //
-static node_t *create_node(rbtree *t, node_t *parent, const int *is_left, const key_t key) {
+static node_t *create_node(rbtree *t, node_t *parent, const int is_left, const key_t key) {
   node_t *new_node = (node_t *)malloc(sizeof(node_t));
   new_node->color = RBTREE_RED;
   new_node->key = key;
@@ -373,7 +367,7 @@ static node_t *create_node(rbtree *t, node_t *parent, const int *is_left, const 
   new_node->right = NULL;
 
   if (parent) {
-    if (*is_left)
+    if (is_left)
       parent->left = new_node;
     else
       parent->right = new_node;
@@ -433,10 +427,8 @@ static node_t *find_parent_node(const rbtree *t, const key_t key, int *is_left) 
 static node_t *insert_1_father_red_no_uncle_or_uncle_black(rbtree *t, node_t *child) {
   node_t *parent = child->parent;
   node_t *grand = find_grand(child);
-  // printf("Insert 1 : %d\n", child->key);
 
   if (grand->left == parent && parent->left == child) {
-    // printf("Case 1_%d\n", child->key);
     grand->left = parent->right;
     if (parent->right)
       parent->right->parent = grand;
@@ -458,7 +450,6 @@ static node_t *insert_1_father_red_no_uncle_or_uncle_black(rbtree *t, node_t *ch
     }
   }
   else if (grand->left == parent && parent->right == child) {
-    // printf("Case 2_%d\n", child->key);
     child->parent = grand->parent;
     grand->parent = child;
     parent->parent = child;
@@ -484,7 +475,6 @@ static node_t *insert_1_father_red_no_uncle_or_uncle_black(rbtree *t, node_t *ch
     }
   }
   else if (grand->right == parent && parent->left == child) {
-    // printf("Case 3_%d\n", child->key);
     child->parent = grand->parent;
     grand->right = child->left;
     if (child->left)
@@ -510,7 +500,6 @@ static node_t *insert_1_father_red_no_uncle_or_uncle_black(rbtree *t, node_t *ch
     }
   }
   else {
-    // printf("Case 4_%d\n", child->key);
     parent->parent = grand->parent;
     grand->right = parent->left;
     if (parent->left)
@@ -539,8 +528,6 @@ static node_t *insert_2_father_red_uncle_red(rbtree *t, node_t *child) {
   node_t *grand_uncle = NULL;
   node_t *uncle = find_uncle(child);
   node_t *parent = child->parent;
-
-  // printf("Insert 2 : %d\n", child->key);
 
 
   uncle->color = RBTREE_BLACK;
@@ -639,7 +626,7 @@ static int erase_x_2_s_black_sr_is_out_and_red(rbtree *t, node_t *p, node_t *s) 
   s->color = p->color;
   p->color = RBTREE_BLACK;
   if (s->right)
-    s->right->color = RBTREE_RED;
+    s->right->color = RBTREE_BLACK;
 }
 
 static int erase_x_2_s_black_sl_is_out_and_red(rbtree *t, node_t *p, node_t *s) {
@@ -662,7 +649,7 @@ static int erase_x_2_s_black_sl_is_out_and_red(rbtree *t, node_t *p, node_t *s) 
   s->color = p->color;
   p->color = RBTREE_BLACK;
   if (s->left)
-    s->left->color = RBTREE_RED;
+    s->left->color = RBTREE_BLACK;
 }
 
 static int erase_x_3_s_black_sl_is_in_and_red(rbtree *t, node_t *p, node_t *s) {
@@ -881,7 +868,6 @@ static int erase_2_4_p_black_s_is_red_and_ps_left(rbtree *t, node_t *p, node_t *
 }
 
 
-
 //
 //  p_col, s_col, sl_col, sr_col
 //
@@ -891,24 +877,20 @@ int check_erase_condition(rbtree *t, node_t *now_node, color_t p_col, color_t s_
   node_t *sl = NULL;
   node_t *sr = NULL;
   
-  // printf("Debug 1\n");
   if (t == NULL || t->root == NULL)
     return 0;
 
-  // printf("Debug 2\n");
   if (now_node == NULL)
     return 0;
 
   p = now_node->parent;
   s = find_sibling(now_node);
 
-  // printf("Debug 3\n");
   if (p == NULL && (p_col == RBTREE_RED || s_col == RBTREE_RED || sl_col == RBTREE_RED || sr_col == RBTREE_RED))
     return 0;
   else if (p == NULL)
     return 1;
 
-  // printf("Debug 4\n");
   if (s == NULL && (s_col == RBTREE_RED || sl_col == RBTREE_RED || sr_col == RBTREE_RED))
     return 0;
   else if (p->color == p_col && s == NULL && s_col == RBTREE_BLACK)
@@ -919,19 +901,16 @@ int check_erase_condition(rbtree *t, node_t *now_node, color_t p_col, color_t s_
   //  이제 p 나 s 는 NULL 이 아니다.
   sl = s->left;
   sr = s->right;
-  // printf("%d, %d, %d, %d\n", p->key, s->key, sl->key, sr->key);
-  // printf("Debug 5\n");
+
   if (p->color == p_col && 
       s->color == s_col &&
       ((sl == NULL && sl_col == RBTREE_BLACK) || (sl && sl->color == sl_col)) &&
       ((sr == NULL && sr_col == RBTREE_BLACK) || (sr && sr->color == sr_col)) )
     return 1;
 
-  // printf("Debug 6\n");
   return 0;
   
 }
-
 
 
 static void delete_node_lrv(node_t *now_node) {
